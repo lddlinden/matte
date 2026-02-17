@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matteläxa för Mila</title>
+    <link rel="stylesheet" href="https://pyscript.net/latest/pyscript.css" />
+    <script defer src="https://pyscript.net/latest/pyscript.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            padding: 30px;
+            max-width: 600px;
+            width: 100%;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        
+        .info {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        
+        .uppgift-container {
+            background: #f5f5f5;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+        
+        .uppgift-nummer {
+            color: #999;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+        }
+        
+        .uppgift-text {
+            font-size: 3em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 20px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .input-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        input {
+            flex: 1;
+            padding: 15px;
+            font-size: 1.2em;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #764ba2;
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+        }
+        
+        button {
+            padding: 15px 30px;
+            font-size: 1.1em;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .feedback {
+            font-size: 1.3em;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .feedback.rätt {
+            background: #d4edda;
+            color: #155724;
+            border: 2px solid #28a745;
+        }
+        
+        .feedback.fel {
+            background: #f8d7da;
+            color: #721c24;
+            border: 2px solid #f5c6cb;
+        }
+        
+        .feedback.tips {
+            background: #fff3cd;
+            color: #856404;
+            border: 2px solid #ffeaa7;
+        }
+        
+        .statistik {
+            background: #f0f0f0;
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 30px;
+            text-align: center;
+        }
+        
+        .statistik h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
+        .stat-rad {
+            display: flex;
+            justify-content: space-around;
+            margin: 10px 0;
+            font-size: 1.1em;
+        }
+        
+        .stat-rad span {
+            color: #666;
+        }
+        
+        .stat-rad strong {
+            color: #764ba2;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+            
+            .uppgift-text {
+                font-size: 2.5em;
+            }
+            
+            input, button {
+                padding: 12px;
+                font-size: 1em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧮 Matteläxa</h1>
+        <div class="info">för Mila</div>
+        
+        <div id="app"></div>
+    </div>
+    
+    <py-script>
+import random
+from pyodide.ffi import create_proxy
+
+# Listor med feedback
+rätt_svar = ["Snyggt jobbat!", "Bra", "Utmärkt!", "Perfekt!", "Bra gjort!", "Du är bäst!", "Imponerande!"]
+tips_lista = [
+    "Tänk på att du kan ta bort lika mycket från varje sida",
+    "Räkna på fingrarna eller använd papper",
+    "Börja med det större talet och räkna upp/ned",
+    "Dela upp talet i mindre delar",
+    "Försök igen - du klarar det!"
+]
+
+class MatteLäxa:
+    def __init__(self):
+        self.totala_uppgifter = 0
+        self.rätt_på_första = 0
+        self.försök = 0
+        self.rätt = False
+        self.uppgift = ""
+        self.korrekt_svar = 0
+        self.skapa_ny_uppgift()
+    
+    def skapa_ny_uppgift(self):
+        operation = random.choice(['+', '-'])
+        tal1 = random.randint(1, 20)
+        
+        if operation == '+':
+            tal2 = random.randint(1, 10)
+            svar = tal1 + tal2
+        else:
+            tal2 = random.randint(1, tal1)
+            svar = tal1 - tal2
+        
+        self.uppgift = f"{tal1} {operation} {tal2}"
+        self.korrekt_svar = svar
+        self.försök = 0
+        self.rätt = False
+        self.totala_uppgifter += 1
+    
+    def kontrollera_svar(self, användar_svar):
+        try:
+            svar_int = int(användar_svar)
+            
+            if svar_int == self.korrekt_svar:
+                if self.försök == 0:
+                    self.rätt_på_första += 1
+                self.rätt = True
+                return ("rätt", random.choice(rätt_svar))
+            else:
+                self.försök += 1
+                if self.försök == 1:
+                    return ("fel", "Försök igen! " + random.choice(tips_lista))
+                elif self.försök == 2:
+                    return ("tips", "Tips: " + random.choice(tips_lista))
+                elif self.försök == 3:
+                    self.rätt = True
+                    return ("svar", f"Rätt svar var {self.korrekt_svar}")
+        
+        except ValueError:
+            return ("error", "Skriv ett tal!")
+
+# Initiera läxan
+läxa = MatteLäxa()
+
+def render():
+    app = Element("app")
+    app.write(f"""
+    <div class="uppgift-container">
+        <div class="uppgift-nummer">Uppgift {läxa.totala_uppgifter}</div>
+        <div class="uppgift-text">{läxa.uppgift}</div>
+        
+        <div class="input-container">
+            <input type="number" id="svar-input" placeholder="Ditt svar..." autofocus>
+            <button onclick="skicka_svar()">Skicka</button>
+        </div>
+        
+        <div id="feedback-area"></div>
+        
+        <button onclick="nästa_uppgift()" style="width: 100%; margin-top: 10px;" id="nästa-btn" style="display: none;">
+            Nästa uppgift →
+        </button>
+    </div>
+    
+    <div class="statistik">
+        <h3>📊 Din statistik</h3>
+        <div class="stat-rad">
+            <span>Uppgifter gjorda:</span>
+            <strong>{läxa.totala_uppgifter - 1}</strong>
+        </div>
+        <div class="stat-rad">
+            <span>Rätt på första försöket:</span>
+            <strong>{läxa.rätt_på_första}</strong>
+        </div>
+        <div class="stat-rad">
+            <span>Träffsäkerhet:</span>
+            <strong>{f"{(läxa.rätt_på_första / max(1, läxa.totala_uppgifter - 1)) * 100:.0f}%" if läxa.totala_uppgifter > 1 else "—"}</strong>
+        </div>
+    </div>
+    """)
+    
+    # Focus input
+    document.getElementById("svar-input").focus()
+
+def skicka_svar():
+    input_element = document.getElementById("svar-input")
+    användar_svar = input_element.value.strip()
+    
+    if not användar_svar:
+        return
+    
+    feedback_area = document.getElementById("feedback-area")
+    typ, meddelande = läxa.kontrollera_svar(användar_svar)
+    
+    feedback_html = f'<div class="feedback {typ}">{meddelande}</div>'
+    feedback_area.innerHTML = feedback_html
+    
+    if läxa.rätt:
+        document.getElementById("nästa-btn").style.display = "block"
+        input_element.disabled = True
+    else:
+        input_element.value = ""
+        input_element.focus()
+
+def nästa_uppgift():
+    läxa.skapa_ny_uppgift()
+    render()
+
+# Initial render
+render()
+
+# Gör funktionerna tillgängliga globalt
+window.skicka_svar = skicka_svar
+window.nästa_uppgift = nästa_uppgift
+
+# Enter-tangent för att skicka svar
+from pyodide.ffi import create_proxy
+
+def handle_keypress(event):
+    if event.key == "Enter":
+        skicka_svar()
+
+document.addEventListener("keypress", create_proxy(handle_keypress))
+    </py-script>
+</body>
+</html>
